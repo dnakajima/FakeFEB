@@ -43,14 +43,11 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
   char cNumber[10];
   int i;
 
-
-
-
   for(i=0;i<10;i++)
   {
     sprintf(&cNumber[i],"%d",i);
   }
-  for(i=0;i<sizeof(sndBuffer)-1;i++)
+  for(i=0;i<sizeof(sndBuffer);i++)
   {
     memcpy(sndBuffer+i,&cNumber[i%10],1);
     //offset+=10;

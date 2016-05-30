@@ -1,5 +1,13 @@
-FakeFEB:
-	gcc -o FakeFEB -std=gnu99 -lrt FakeFEB.c AcceptTCPConnection.c  AddressUtility.c  DieWithMessage.c DieWithError.c    CreateTCPServerSocket.c  HandleTCPClient.c
+TARGET=FakeFEB
+CC=gcc
+LDFLAGS=-std=gnu99
+SRCS=$(wildcard ./*.c)
+OBJS=$(SRCS:%.c=%.o)
+all:$(TARGET)
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
+%.o:%.c
+	$(CC) -o $@ -c $^
 clean: 
-	rm FakeFEB
+	$(RM) $(OBJS) $(TARGET)
