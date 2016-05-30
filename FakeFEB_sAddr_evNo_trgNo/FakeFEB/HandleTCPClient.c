@@ -11,10 +11,15 @@
 #include <unistd.h>     /* for close() */
 
 #define HEADERSIZE 2
+
 #define IPADDRSIZE 4
+
 #define EVTNOSIZE  4
 #define TRGNOSIZE  4
 #define TRAILRSIZE 5
+
+#define FOOTERSIZE 8
+#define FOOTERPOS 24
 
 #include <string.h> // for memset
 #include <time.h>
@@ -47,14 +52,25 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
   {
     sprintf(&cNumber[i],"%d",i);
   }
-  for(i=0;i<sizeof(sndBuffer);i++)
+
+  for(i=0;i<FOOTERPOS+FOOTERSIZE;i++)
   {
-    memcpy(sndBuffer+i,&cNumber[i%10],1);
+    memcpy(sndBuffer+i,"0x09",1);
     //offset+=10;
   }
 
   //*** 0 to 1 *** "FF"
-  memcpy(sndBuffer,"FF",HEADERSIZE);
+  for(i=0;i<HEADERSIZE;i++)
+    sndBuffer[i]=0xAA;
+
+  for(i=FOOTERPOS;i<FOOTERSIZE;i++)
+    sndBuffer[i]=0xDD;
+
+  for(i=FOOTERPOS+FOOTERSIZE;i<sizeof(sndBuffer);i++)
+  {
+    memcpy(sndBuffer+i,&cNumber[i%10],1);
+    //offset+=10;
+  }
 
   //*** 2 to 5 *** Server IPAddress
   struct sockaddr_in ServAddr;
