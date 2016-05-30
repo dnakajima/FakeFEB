@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
     struct sockaddr_in *destAddr4 = (struct sockaddr_in *) &destStorage;
     destAddr4->sin_family = AF_INET;
     destAddr4->sin_port = port;
-    destAddr4->sin_addr.s_addr= inet_addr("192.168.10.255");//INADDR_BROADCAST;
+    destAddr4->sin_addr.s_addr= inet_addr("192.168.1.255");//INADDR_BROADCAST;
     //destAddr4->sin_addr.s_addr= INADDR_BROADCAST;//This causes sendto() error "Network is unreachable"
     addrSize = sizeof(struct sockaddr_in);
   //}else if (argv[1][0] == '6'){
