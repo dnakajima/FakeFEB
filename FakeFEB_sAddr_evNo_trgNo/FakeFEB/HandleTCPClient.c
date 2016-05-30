@@ -42,6 +42,10 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
   //padding all
   char cNumber[10];
   int i;
+
+
+
+
   for(i=0;i<10;i++)
   {
     sprintf(&cNumber[i],"%d",i);
@@ -79,7 +83,7 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
   /* int trgoffset = 16*(rddepth*2 +1)+4; */
 
   int evtoffset = 8;
-  int trgoffset = 12
+  int trgoffset = 12;
 
   /***************************************/
   //  Signal receiver port(SERVER) 
