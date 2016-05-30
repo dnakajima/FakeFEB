@@ -1,0 +1,187 @@
+////////////////////////////////////////////////////////////////
+// FakeFEB.c
+//   By Kazuma Ishio.
+//   Last update : 2015/05/11
+//  ****Outline****
+//  This program will send event data in Dragon v5 format
+//  [From]
+//  DataSendAddress   : default 192.168.10.9
+//  DataSendPort      : default 24
+//  [To] the address which requests the IP&Port.
+//  
+//  The trigger signal will be accepted  with
+//  TriggerReceivePort : default 30001
+//  
+//  ****Usage****
+//  compile:
+//    just type "make"
+//  submit:
+//    sudo ./FakeFEB <DataSendIP>  <DataSendPort> <TriggerReceivePort> [1|0]
+//    sudo ./FakeFEB 192.168.10.9    24             30001                 
+//   or just run with
+//    sudo ./FakeFEB
+//  The last argurement is whether you want full output for running status.
+//  ('1' is "yes")
+//  
+//  ****Flow of the program****
+//  (1) main calls CreateTCPServerSocket
+//     to make a socket as a DataServer.
+//  (2) When a request comes,
+//  (3) main calls AcceptTCPConnection and HandleTCPClient.
+//  (4) A child process of HandleTCPClient is made by fork.
+//  (5) HandleTCPClient makes TrigSock
+//       TrigSock receive trigger as LOOPBACK packets.
+//       clntSock throws data.
+//    
+//  ****socket descriptors in this program****
+//  servSock(TCP)  :the socket to wait client with binded port
+//  clntSock(TCP)  :the socket of port through which client requests to send data
+//  TrigSock(UDP)  :the socket to accept trigger signal packets through UDP.
+//  
+//  
+//  
+////////////////////////////////////////////////////////////////
+
+#include "TCPServer.h"
+#include <sys/wait.h>
+#include <getopt.h>
+#include <stdbool.h>
+
+struct option options[] =
+  {
+    {"help"     ,no_argument       ,NULL ,'h'},
+    {"ip"       ,required_argument ,NULL ,'i'},
+    {"port"     ,required_argument ,NULL ,'p'},
+    {"accept"   ,required_argument ,NULL ,'a'},
+    {"readdepth",required_argument ,NULL ,'r'},
+    {"verbose"  ,no_argument       ,NULL ,'v'},
+    {0,0,0,0}
+  };
+
+
+int main(int argc, char *argv[])
+{
+  int servSock;
+  int clntSock;
+  char *         dataServAddr;
+  unsigned short dataServPort;
+  char *         trigRecvPort;
+  pid_t processID;
+  unsigned int childProcCount = 0;
+  bool PrintStatus = false;
+  int rddepth;
+  /**********************************************/
+  //  Handling input arguments
+  /**********************************************/
+  int opt;
+  int index;
+  bool i_isset=false;
+  bool p_isset=false;
+  bool t_isset=false;
+  bool r_isset=false;
+  while((opt=getopt_long(argc,argv,"hi:p:t:r:v",options,&index))!=-1){
+    switch(opt){
+    case 'h':
+      printf("Usage:\n");
+      printf("you run this program with some options like\n");
+      printf("%s -o MyFileNameHeader -s -r 50 -n 10000\n",argv[0]);
+      printf("***** LIST OF OPTIONS *****\n");
+      printf("-h|--				   : \n");
+      printf("-i|--				   : \n");
+      printf("-p|--				   : \n");
+      printf("-t|--				   : \n");
+      printf("-r|--readdepth <ReadDepth>	   :Default is 30.\n");
+      printf("-v|--				   : \n");
+      printf("********* CAUTION ********\n");
+      exit(0);
+    case 'i':
+      dataServAddr=optarg;
+      i_isset=true;
+      break;
+    case 'p':
+      dataServPort=(unsigned short)atoi(optarg);
+      p_isset=true;
+      break;
+    case 't':
+      trigRecvPort = optarg;
+      t_isset=true;
+      break;
+    case 'r':
+      rddepth=atoi(optarg);      
+      r_isset=true;
+      break;
+    case 'v':
+      PrintStatus=true;
+      break;
+    }
+  }
+  if(!i_isset)dataServAddr="192.168.10.9";
+  if(!p_isset)dataServPort=24;
+  if(!t_isset)trigRecvPort="30001";
+  if(!r_isset)rddepth=30;
+  
+  /* if (argc != 1) */
+  /*   { */
+  /*     if (argc !=4 && argc !=5)//if argv is invalid */
+  /* 	{ */
+  /* 	  fprintf(stderr,  */
+  /* 		  "Usage: %s <DataDepartureIP> <DataDeparturePort> <TriggerReceivePort> [1|0]\n", argv[0]); */
+  /* 	  exit(1); */
+  /* 	} */
+  /*     // if argc is 4 or 5  */
+  /*     /\* dataServAddr = argv[1]; *\/ */
+  /*     /\* dataServPort = atoi(argv[2]); *\/ */
+  /*     /\* trigRecvPort = argv[3]; *\/ */
+  /*     if(argc == 5) PrintStatus = atoi(argv[4]); */
+  /*     printf("argument is used for connection\n"); */
+  /*   } */
+  /* else//if no argv */
+  /*   { */
+  /*     dataServAddr="192.168.10.9"; */
+  /*     dataServPort=24; */
+  /*     trigRecvPort="30001";/\**Trigger receive port 12345***\/ */
+  /*     PrintStatus=1; */
+  /*     printf("Connection will be accepted with default\n"); */
+  /*   } */
+  printf("Data will be served from %s:%u\n",dataServAddr,dataServPort);
+  printf("Trigger will be accepted thorough port %s\n",trigRecvPort);
+
+  /**********************************************/
+  //  Creating the socket to accept
+  //                   a connection requiremet
+  /**********************************************/
+  servSock = CreateTCPServerSocket(dataServAddr, dataServPort);
+  
+  /**********************************************/
+  //  Waiting, Accepting , and fork process
+  /**********************************************/
+  for(;;)
+    {
+      clntSock = AcceptTCPConnection(servSock);
+      if ((processID = fork()) < 0)
+	{
+	  DieWithError("fork() failed");
+	}
+      else if (processID == 0 )
+	{
+	  close(servSock);
+	  HandleTCPClient(clntSock,trigRecvPort,dataServAddr,rddepth,PrintStatus);
+	  exit(0);
+	}
+      /***When child process is successfully generated***/
+      printf("with child process: %d\n",(int)processID);
+      close(clntSock);
+      childProcCount++;
+
+      while (childProcCount)
+	{
+	  processID = waitpid((pid_t) - 1, NULL, WNOHANG);
+	  if(processID < 0)
+	    DieWithError("waitpid() failed");
+	  else if (processID ==0)
+	    break;
+	  else
+	    childProcCount--;
+	}
+    }
+}
