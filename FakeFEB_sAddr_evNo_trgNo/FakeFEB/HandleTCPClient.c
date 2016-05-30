@@ -55,7 +55,7 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
 
   for(i=0;i<FOOTERPOS+FOOTERSIZE;i++)
   {
-    memcpy(sndBuffer+i,"0x09",1);
+    memcpy(sndBuffer+i,"\x09",1);
     //offset+=10;
   }
 
@@ -63,7 +63,7 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
   for(i=0;i<HEADERSIZE;i++)
     sndBuffer[i]=0xAA;
 
-  for(i=FOOTERPOS;i<FOOTERSIZE;i++)
+  for(i=FOOTERPOS;i<FOOTERPOS+FOOTERSIZE;i++)
     sndBuffer[i]=0xDD;
 
   for(i=FOOTERPOS+FOOTERSIZE;i<sizeof(sndBuffer);i++)
