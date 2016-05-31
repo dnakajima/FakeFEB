@@ -18,8 +18,8 @@
 #define TRGNOSIZE  4
 #define TRAILRSIZE 5
 
-#define FOOTERSIZE 8
-#define FOOTERPOS 24
+#define DATAHEADERSIZE 8
+#define DATAHEADERPOS 24
 
 #include <string.h> // for memset
 #include <time.h>
@@ -53,7 +53,7 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
     sprintf(&cNumber[i],"%d",i);
   }
 
-  for(i=0;i<FOOTERPOS+FOOTERSIZE;i++)
+  for(i=0;i<DATAHEADERPOS+DATAHEADERSIZE;i++)
   {
     memcpy(sndBuffer+i,"\x09",1);
     //offset+=10;
@@ -63,10 +63,10 @@ void HandleTCPClient(int clntSocket, char *trigAcptPort,char *dataServAddr, int 
   for(i=0;i<HEADERSIZE;i++)
     sndBuffer[i]=0xAA;
 
-  for(i=FOOTERPOS;i<FOOTERPOS+FOOTERSIZE;i++)
+  for(i=DATAHEADERPOS;i<DATAHEADERPOS+DATAHEADERSIZE;i++)
     sndBuffer[i]=0xDD;
 
-  for(i=FOOTERPOS+FOOTERSIZE;i<sizeof(sndBuffer);i++)
+  for(i=DATAHEADERPOS+DATAHEADERSIZE;i<sizeof(sndBuffer);i++)
   {
     memcpy(sndBuffer+i,&cNumber[i%10],1);
     //offset+=10;
